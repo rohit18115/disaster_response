@@ -12,3 +12,13 @@
     `python run.py`
 
 3. Go to http://0.0.0.0:3001/
+
+## Example Images
+
+![Training data overview](https://github.com/rohit18115/disaster_response/blob/main/data/Training_data_overview.png)
+
+![Classification result example](https://github.com/rohit18115/disaster_response/blob/main/data/classification_results.png)
+
+## to-do
+- Make a better readme
+- Deploy app on heroku
