@@ -7,7 +7,7 @@ from nltk.tokenize import word_tokenize
 
 from flask import Flask
 from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar
+from plotly.graph_objs import Bar, Heatmap
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
@@ -27,9 +27,29 @@ def tokenize(text):
     return clean_tokens
 
 
+def get_redundant_pairs(df):
+    """Get diagonal and lower triangular pairs of correlation matrix"""
+    pairs_to_drop = set()
+    cols = df.columns
+    for i in range(0, df.shape[1]):
+        for j in range(0, i + 1):
+            pairs_to_drop.add((cols[i], cols[j]))
+    return pairs_to_drop
+
+
+def get_top_abs_correlations(df, n=5):
+    au_corr = df.corr().abs().unstack()
+    labels_to_drop = get_redundant_pairs(df)
+    au_corr = au_corr.drop(labels=labels_to_drop).sort_values(ascending=False)
+    return au_corr[0:n]
+
+
 # load data
 engine = create_engine("sqlite:///../data/disaster_texts.db")
 df = pd.read_sql_table("disaster_texts", engine)
+
+categories_engine = create_engine("sqlite:///../data/categories_database.db")
+categories = pd.read_sql_table("categories", categories_engine)
 
 # load model
 model = joblib.load("../models/gridsearch_model_xgb.pkl")
@@ -45,6 +65,16 @@ def index():
     genre_counts = df.groupby("genre").count()["message"]
     genre_names = list(genre_counts.index)
 
+    categories_temp = pd.DataFrame(categories.mean() * 100).reset_index()
+    categories_temp.columns = ["category", "mean_percent"]
+
+    top_correlations = get_top_abs_correlations(categories, 10).reset_index()
+    top_correlations["pairs"] = (
+        top_correlations["level_0"] + "-" + top_correlations["level_1"]
+    )
+    top_correlations = top_correlations.drop(["level_0", "level_1"], axis=1)
+    top_correlations.columns = ["correlation", "pairs"]
+
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
@@ -55,7 +85,31 @@ def index():
                 "yaxis": {"title": "Count"},
                 "xaxis": {"title": "Genre"},
             },
-        }
+        },
+        {
+            "data": [Bar(x=categories_temp.category, y=categories_temp.mean_percent)],
+            "layout": {
+                "title": "Distribution of nultioutput category labels",
+                "yaxis": {"title": "Mean Percent"},
+                "xaxis": {"title": "Category"},
+            },
+        },
+        {
+            "data": [
+                Heatmap(z=categories.corr(), x=categories.columns, y=categories.columns)
+            ],
+            "layout": {
+                "title": "Correlation heatmap of the category labels",
+            },
+        },
+        {
+            "data": [Bar(x=top_correlations.pairs, y=top_correlations.correlation)],
+            "layout": {
+                "title": "Correlation values of the top 10 pairs of category labels",
+                "yaxis": {"title": "Correlation values"},
+                "xaxis": {"title": "Category label pairs"},
+            },
+        },
     ]
 
     # encode plotly graphs in JSON
