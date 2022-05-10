@@ -38,6 +38,7 @@ def clean_data(df):
     for column in categories:
         # set each value to be the last character of the string
         categories[column] = [int(i[-1]) for i in categories[column]]
+    categories = categories[categories["related"] != 2]
     # drop the original categories column from `df`
     df = df.drop(["categories"], axis=1)
     # concatenate the original dataframe with the new `categories` dataframe
@@ -57,7 +58,7 @@ def save_data(df, categories, database_filepath, categories_filepath):
     """
     engine = create_engine("sqlite:///{}".format(database_filepath))
     df.to_sql("disaster_texts", engine, index=False, if_exists="replace")
-    cat_engine = create_engine("sqlite:///categories_database.db")
+    cat_engine = create_engine("sqlite:///data/categories_database.db")
     categories.to_sql("categories", cat_engine, index=False, if_exists="replace")
 
 
