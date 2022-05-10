@@ -79,7 +79,7 @@ def build_model(fast="fast", XGB="xgb"):
         Model
 
     """
-    if XGB != "xgb":
+    if XGB == "rand":
 
         pipeline = Pipeline(
             [
@@ -88,7 +88,7 @@ def build_model(fast="fast", XGB="xgb"):
                 ("clf", MultiOutputClassifier(RandomForestClassifier())),
             ]
         )
-    else:
+    elif XGB == "xgb":
         model = xgb.XGBClassifier()
         pipeline = Pipeline(
             [
@@ -97,8 +97,8 @@ def build_model(fast="fast", XGB="xgb"):
                 ("clf", MultiOutputClassifier(model)),
             ]
         )
-    if XGB != "xgb":
-        if fast != "fast":
+    if XGB == "rand":
+        if fast == "grid":
             # Number of trees in random forest
             n_estimators = [int(x) for x in np.linspace(start=50, stop=100, num=2)]
             # Number of features to consider at every split
@@ -121,7 +121,7 @@ def build_model(fast="fast", XGB="xgb"):
             cv = GridSearchCV(pipeline, param_grid=random_grid)
 
             return cv
-        else:
+        elif fast == "fast":
 
             random_grid = {
                 "clf__estimator__n_estimators": 50,
@@ -130,7 +130,7 @@ def build_model(fast="fast", XGB="xgb"):
                 "clf__estimator__min_samples_split": 5,
                 "clf__estimator__min_samples_leaf": 1,
             }
-            pipline.set_params(
+            pipeline.set_params(
                 clf__estimator__n_estimators=50,
                 clf__estimator__max_features="auto",
                 clf__estimator__max_depth=10,
@@ -139,15 +139,15 @@ def build_model(fast="fast", XGB="xgb"):
             )
 
             return pipeline
-    else:
-        if fast != "fast":
+    elif XGB == "xgb":
+        if fast == "grid":
             random_grid = {
                 "clf__estimator__max_depth": [5, 7, 10],
                 "clf__estimator__n_estimators": [50, 100],
             }
             cv = GridSearchCV(pipeline, param_grid=random_grid)
             return cv
-        else:
+        elif fast == "fast":
             # random_grid = {
             #     "clf__estimator__max_depth": 5,
             #     "clf__estimator__n_estimators": 50,
@@ -211,8 +211,11 @@ def main():
         print(
             "Please provide the filepath of the disaster messages database "
             "as the first argument and the filepath of the pickle file to "
-            "save the model to as the second argument. \n\nExample: python "
-            "train_classifier.py ../data/DisasterResponse.db classifier.pkl"
+            "save the model to as the second argument. And write 'grid' as third argument"
+            "if you want to train with gridsearch else write 'fast'. And write 'rand' as fourth"
+            "argument if you want to train a RandomForestClassifier or write 'xgb' if "
+            "you want to train a XGBoost classifier. \n\nExample: python "
+            "train_classifier.py ../data/DisasterResponse.db classifier.pkl fast xgb"
         )
 
 

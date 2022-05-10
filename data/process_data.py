@@ -44,10 +44,10 @@ def clean_data(df):
     df = pd.concat([df, categories], axis=1)
     # drop duplicates
     df.drop_duplicates(inplace=True)
-    return df
+    return df, categories
 
 
-def save_data(df, database_filename):
+def save_data(df, categories, database_filepath, categories_filepath):
     """Saves the cleaned dataframe to the specified path.
 
     Parameters:
@@ -55,8 +55,10 @@ def save_data(df, database_filename):
         database_filename: the filename of the clean dataframe df.
 
     """
-    engine = create_engine("sqlite:///disaster_texts.db")
-    df.to_sql("disaster_texts", engine, index=False)
+    engine = create_engine("sqlite:///{}".format(database_filepath))
+    df.to_sql("disaster_texts", engine, index=False, if_exists="replace")
+    cat_engine = create_engine("sqlite:///categories_database.db")
+    categories.to_sql("categories", cat_engine, index=False, if_exists="replace")
 
 
 def main():
@@ -72,10 +74,10 @@ def main():
         df = load_data(messages_filepath, categories_filepath)
 
         print("Cleaning data...")
-        df = clean_data(df)
+        df, categories = clean_data(df)
 
         print("Saving data...\n    DATABASE: {}".format(database_filepath))
-        save_data(df, database_filepath)
+        save_data(df, categories, database_filepath, categories_filepath)
 
         print("Cleaned data saved to database!")
 
